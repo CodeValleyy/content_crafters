@@ -24,7 +24,7 @@ utoipa-swagger-ui = {version="6.0.0", features=["actix-web"]}
 #tokio = { version = "1", features = ["full"] }
 
 # WebSocket integration with Tokio
-tokio-tungstenite = "0.16.1"
+tokio-tungstenite = "0.21.0"
 
 # AWS SDK for S3 access
 #rusoto_core = "0.47.0"
