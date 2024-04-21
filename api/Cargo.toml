@@ -12,6 +12,12 @@ repository = "https://github.com/jabibamman/content_crafters"
 actix = "0.13.1"
 actix-web = "4.4.1"
 actix-rt = "2.5"  # Runtime for actix-web
+actix-multipart = "0.6.1"  # For handling multipart form data
+
+# Futures for async programming
+futures = "0.3.17"
+
+sanitize-filename = "0.5.0"
 
 # For the API documentation
 utoipa = { version="4.2.0", features = ["actix_extras"]}
@@ -29,6 +35,9 @@ serde_json = "1.0.111"
 
 # Environment variable management
 dotenv = "0.15.0"
+
+# dates and times
+chrono = "0.4"
 
 log = "0.4"
 

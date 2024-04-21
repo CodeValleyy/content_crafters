@@ -1,10 +1,11 @@
-use actix_web::{middleware::Logger, App, HttpServer};
+use actix_web::{middleware::Logger, web, App, HttpServer};
 use std::net::Ipv4Addr;
 use utoipa::OpenApi;
 use std::env;
 
-use crate::endpoints::hello;
-use hello::HelloWithName;
+use crate::endpoints::content::models::ContentDetails;
+use crate::endpoints::content;
+use crate::endpoints::content::routes::config as content_config;
 
 use utoipa_swagger_ui::SwaggerUi;
 use log::info;
@@ -12,15 +13,21 @@ use log::info;
 pub async fn run_server() -> std::io::Result<()> {
     #[derive(OpenApi)]
     #[openapi(
-        paths(hello::hello_my_g, hello::hello_with_name
+        paths(
+            content::handlers::upload,
+            content::handlers::get_details,
         ),
         components(
-            schemas(HelloWithName)
+            schemas(ContentDetails/*, TODO: Add other schemas here */)
         ),
 
         tags(
-                (name = "hello", description = "Hello world!")
-    )
+                (name = "hello", description = "Hello world!"),
+                (name = "content", description = "Content related operations")
+        ),
+        servers(
+            (url = "/v1", description = "Base URL for all API endpoints")
+        )
     )]
     struct ApiDoc;
     let openapi = ApiDoc::openapi();
@@ -31,9 +38,13 @@ pub async fn run_server() -> std::io::Result<()> {
             .wrap(Logger::default())
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-docs/openapi.json", openapi.clone()),
+            )            
+            .service(
+                web::scope("/v1")
+                    .configure(content_config)
+                     
             )
-            .service(hello::hello_my_g)
-            .service(hello::hello_with_name)
+            .configure(content_config) 
     })
     .bind((Ipv4Addr::UNSPECIFIED, port))?
     .run()
