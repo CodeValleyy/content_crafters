@@ -18,6 +18,9 @@ services:
       - MONGO_USERNAME=${MONGO_USERNAME}
       - MONGO_PASSWORD=${MONGO_PASSWORD}
       - APP_PORT=${APP_PORT}  
+      - VERBOSE=${VERBOSE}
+      - DEBUG=${DEBUG}
+      - TRACE=${TRACE}
     ports:
       - "${APP_PORT}:${APP_PORT}"
     depends_on:

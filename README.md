@@ -71,3 +71,11 @@ OR
 OR
 `-e TRACE=1`
 flag to the `docker run` command.
+
+## Docker Compose
+
+You can also use Docker Compose to run the application. The `docker-compose.yml` file is already provided in the repository. You can run the application using the following command:
+
+```bash
+docker-compose up --build
+```
