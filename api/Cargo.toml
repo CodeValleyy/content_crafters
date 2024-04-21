@@ -1,0 +1,42 @@
+[package]
+name = "api"
+version = "0.1.0"
+edition = "2021"
+
+authors = ["James <jabib@myges.fr>", "Ronan <rkielt@myges.fr>", "Charles <ccretois@myges.fr>"]
+description = "A content management and social interaction platform"
+repository = "https://github.com/jabibamman/content_crafters"
+
+[dependencies]
+# Web framework for handling RESTful API and WebSocket
+actix = "0.13.1"
+actix-web = "4.4.1"
+actix-rt = "2.5"  # Runtime for actix-web
+
+# For the API documentation
+utoipa = { version="4.2.0", features = ["actix_extras"]}
+utoipa-swagger-ui = {version="6.0.0", features=["actix-web"]}
+
+# async runtime
+#tokio = { version = "1", features = ["full"] }
+
+# WebSocket integration with Tokio
+tokio-tungstenite = "0.21.0"
+
+# JSON handling
+serde = { version = "1.0.195", features = ["derive"] }
+serde_json = "1.0.111"
+
+# Environment variable management
+dotenv = "0.15.0"
+
+log = "0.4"
+
+[dependencies.shared]
+path = "../shared"
+
+[dependencies.logger]
+path = "../logger"
+
+[dependencies.cli]
+path = "../cli"
