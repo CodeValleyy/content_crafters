@@ -17,8 +17,9 @@ services:
     environment:
       - MONGO_USERNAME=${MONGO_USERNAME}
       - MONGO_PASSWORD=${MONGO_PASSWORD}
+      - APP_PORT=${APP_PORT}  
     ports:
-      - 8080:${APP_PORT}
+      - "${APP_PORT}:${APP_PORT}"
     depends_on:
       - mongodb
 
