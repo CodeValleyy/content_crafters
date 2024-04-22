@@ -2,7 +2,6 @@
 mod operation_tests {
     use crate::parser::CliApiArgs;
 
-
     pub fn initialize() -> CliApiArgs {
         CliApiArgs {
             port: 8080,
@@ -24,5 +23,4 @@ mod operation_tests {
 
         assert_eq!(client_args.port, 8080);
     }
-    
 }

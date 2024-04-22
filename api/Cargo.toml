@@ -3,16 +3,21 @@ name = "api"
 version = "0.1.0"
 edition = "2021"
 
-authors = ["James <jabib@myges.fr>", "Ronan <rkielt@myges.fr>", "Charles <ccretois@myges.fr>"]
+authors = [
+    "James <jabib@myges.fr>",
+    "Ronan <rkielt@myges.fr>",
+    "Charles <ccretois@myges.fr>",
+]
 description = "A content management and social interaction platform"
 repository = "https://github.com/jabibamman/content_crafters"
+
 
 [dependencies]
 # Web framework for handling RESTful API and WebSocket
 actix = "0.13.1"
 actix-web = "4.4.1"
-actix-rt = "2.5"  # Runtime for actix-web
-actix-multipart = "0.6.1"  # For handling multipart form data
+actix-rt = "2.5"          # Runtime for actix-web
+actix-multipart = "0.6.1" # For handling multipart form data
 
 # Futures for async programming
 futures = "0.3.17"
@@ -20,8 +25,8 @@ futures = "0.3.17"
 sanitize-filename = "0.5.0"
 
 # For the API documentation
-utoipa = { version="4.2.0", features = ["actix_extras"]}
-utoipa-swagger-ui = {version="6.0.0", features=["actix-web"]}
+utoipa = { version = "4.2.0", features = ["actix_extras"] }
+utoipa-swagger-ui = { version = "6.0.0", features = ["actix-web"] }
 
 # async runtime
 #tokio = { version = "1", features = ["full"] }
