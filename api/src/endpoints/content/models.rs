@@ -1,7 +1,7 @@
 use actix_multipart::Multipart;
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use serde::{Serialize, Deserialize};
-use chrono::{DateTime, Utc};
+//use chrono::{DateTime, Utc};
 
 #[derive(ToSchema)]
 pub struct UploadFile {
@@ -47,21 +47,29 @@ pub struct ContentDetails {
 
     #[schema(example = "true")]
     pub editable: bool,
-/* 
-    #[schema(example = "2021-08-01T12:34:56Z")]
-    pub created_at: DateTime<chrono::Utc>,
+    /*
+        #[schema(example = "2021-08-01T12:34:56Z")]
+        pub created_at: DateTime<chrono::Utc>,
 
-    #[schema(example = "2021-08-01T12:34:56Z")]
-    pub updated_at: DateTime<chrono::Utc>,
-*/
+        #[schema(example = "2021-08-01T12:34:56Z")]
+        pub updated_at: DateTime<chrono::Utc>,
+    */
 }
 
 impl ContentDetails {
-
-
-    pub fn new(id: String, title: String, description: String, output_type: String, input_type: String, 
-        author: String, tags: Vec<String>, version: String, comments: Vec<String>, likes: i32, 
-        editable: bool) -> ContentDetails {
+    pub fn new(
+        id: String,
+        title: String,
+        description: String,
+        output_type: String,
+        input_type: String,
+        author: String,
+        tags: Vec<String>,
+        version: String,
+        comments: Vec<String>,
+        likes: i32,
+        editable: bool,
+    ) -> ContentDetails {
         ContentDetails {
             id,
             title,
@@ -73,7 +81,7 @@ impl ContentDetails {
             version,
             comments,
             likes,
-            editable
+            editable,
         }
 
         /* TODO: Add the following fields:

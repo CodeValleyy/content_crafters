@@ -3,11 +3,16 @@ name = "shared"
 version = "0.1.0"
 edition = "2021"
 
-authors = ["James <jabib@myges.fr>", "Ronan <rkielt@myges.fr>", "Charles <ccretois@myges.fr>"]
+authors = [
+    "James <jabib@myges.fr>",
+    "Ronan <rkielt@myges.fr>",
+    "Charles <ccretois@myges.fr>",
+]
 description = "A content management and social interaction platform"
 repository = "https://github.com/jabibamman/content_crafters"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
 
 [dependencies]
 # JSON handling

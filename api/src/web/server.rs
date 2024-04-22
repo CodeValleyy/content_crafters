@@ -1,14 +1,14 @@
 use actix_web::{middleware::Logger, web, App, HttpServer};
+use std::env;
 use std::net::Ipv4Addr;
 use utoipa::OpenApi;
-use std::env;
 
-use crate::endpoints::content::models::ContentDetails;
 use crate::endpoints::content;
+use crate::endpoints::content::models::ContentDetails;
 use crate::endpoints::content::routes::config as content_config;
 
-use utoipa_swagger_ui::SwaggerUi;
 use log::info;
+use utoipa_swagger_ui::SwaggerUi;
 
 pub async fn run_server() -> std::io::Result<()> {
     #[derive(OpenApi)]
@@ -22,7 +22,6 @@ pub async fn run_server() -> std::io::Result<()> {
         ),
 
         tags(
-                (name = "hello", description = "Hello world!"),
                 (name = "content", description = "Content related operations")
         ),
         servers(
@@ -31,20 +30,19 @@ pub async fn run_server() -> std::io::Result<()> {
     )]
     struct ApiDoc;
     let openapi = ApiDoc::openapi();
-    let port = env::var("APP_PORT").unwrap_or_else(|_| "8080".to_string()).parse::<u16>().unwrap_or(8080);
+    let port = env::var("APP_PORT")
+        .unwrap_or_else(|_| "8080".to_string())
+        .parse::<u16>()
+        .unwrap_or(8080);
     info!("Starting server on port {}", port);
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-docs/openapi.json", openapi.clone()),
-            )            
-            .service(
-                web::scope("/v1")
-                    .configure(content_config)
-                     
             )
-            .configure(content_config) 
+            .service(web::scope("/v1").configure(content_config))
+            .configure(content_config)
     })
     .bind((Ipv4Addr::UNSPECIFIED, port))?
     .run()
