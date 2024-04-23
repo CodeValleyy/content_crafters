@@ -5,7 +5,7 @@ use utoipa::ToSchema;
 
 #[derive(ToSchema)]
 pub struct UploadFile {
-    pub file: Multipart,
+    pub file: Vec<u8>,
 }
 
 #[derive(serde::Deserialize)]

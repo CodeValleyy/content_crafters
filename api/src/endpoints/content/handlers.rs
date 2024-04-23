@@ -1,9 +1,9 @@
+use crate::endpoints::content::models::ContentDetails;
 use actix_multipart::Multipart;
 use actix_web::{web, Error, HttpResponse, Responder};
 use futures::StreamExt;
 use log::info;
-use crate::endpoints::content::models::ContentDetails;
-
+use tokio::io::AsyncWriteExt;
 #[utoipa::path(
     post,
     path = "/content/upload",
@@ -26,14 +26,18 @@ pub async fn upload(mut payload: Multipart) -> Result<HttpResponse, Error> {
             let content_disposition = field.content_disposition();
             let filename = content_disposition.get_filename().unwrap();
             info!("Uploading file: {}", filename);
-            let _filepath = format!("./tmp/{}", sanitize_filename::sanitize(filename));
+            let _filepath = format!("{}", sanitize_filename::sanitize(filename));
 
             let mut file_bytes = web::BytesMut::new();
             while let Some(chunk) = field.next().await {
                 let data = chunk?;
                 file_bytes.extend_from_slice(&data);
             }
-
+            /* TODO: File Saving example
+            let mut file = tokio::fs::File::create(&_filepath).await?;
+            file.write_all(&file_bytes).await?;
+            info!("File saved to: {}", _filepath);
+            */
             // TODO: Implement upload_to_gcp_storage
             //upload_to_gcp_storage(file_bytes.freeze()).await?;
         }
@@ -61,7 +65,11 @@ pub(super) async fn get_details(name: web::Path<String>) -> impl Responder {
         output_type: "text/html".to_string(),
         input_type: "text/plain".to_string(),
         author: "John Doe".to_string(),
-        tags: vec!["utility".to_string(), "transformation".to_string(), "text processing".to_string()],
+        tags: vec![
+            "utility".to_string(),
+            "transformation".to_string(),
+            "text processing".to_string(),
+        ],
         version: "v1.2.0".to_string(),
         comments: vec!["comment1".to_string(), "comment2".to_string()],
         likes: 42,
