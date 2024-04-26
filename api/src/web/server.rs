@@ -1,4 +1,5 @@
 use actix_web::{middleware::Logger, web, App, HttpServer};
+use shared::db::Db;
 use std::env;
 use std::net::Ipv4Addr;
 use utoipa::OpenApi;
@@ -12,7 +13,7 @@ use utoipa_swagger_ui::SwaggerUi;
 
 const DEFAULT_PORT: u16 = 8080;
 
-pub async fn run_server() -> std::io::Result<()> {
+pub async fn run_server(db: Db) -> std::io::Result<()> {
     let port = get_server_port();
     let server_address = (Ipv4Addr::UNSPECIFIED, port);
     let swagger_url = format!(
@@ -25,6 +26,7 @@ pub async fn run_server() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
+            .app_data(web::Data::new(db.clone()))
             .wrap(Logger::default())
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}")
