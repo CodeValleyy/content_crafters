@@ -55,7 +55,7 @@ mod tests {
         let rt = Runtime::new().unwrap();
         rt.block_on(async {
             let db = MockDb {};
-            let command = doc! {"ping": "0"};
+            let command = doc! {"select * from users": "0"};
             let result = db.run_command(command, None).await;
             assert!(result.is_err());
         });
