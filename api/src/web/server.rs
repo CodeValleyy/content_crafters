@@ -1,5 +1,5 @@
 use actix_web::{middleware::Logger, web, App, HttpServer};
-use shared::db::Db;
+use shared::database::db_interface::DatabaseInterface;
 use std::env;
 use std::net::Ipv4Addr;
 use utoipa::OpenApi;
@@ -13,9 +13,44 @@ use utoipa_swagger_ui::SwaggerUi;
 
 const DEFAULT_PORT: u16 = 8080;
 
-pub async fn run_server(db: Db) -> std::io::Result<()> {
+/// This is an asynchronous function `run_server` that starts a server and binds it to a specified port.
+/// It accepts a generic parameter `T` that implements the `DatabaseInterface` trait.
+/// The function takes a `db` parameter of type `T` which represents the database interface.
+/// The function returns a `std::io::Result<()>` indicating whether the server started successfully or encountered an error.
+///
+/// # Arguments
+///
+/// * `db` - A generic parameter `T` that implements the `DatabaseInterface` trait. It represents the database interface.
+///
+/// # Panics
+///
+/// The function may panic if there is an error binding the server to the specified port.
+///
+/// # Errors
+///
+/// The function returns a `std::io::Result<()>` indicating whether the server started successfully or encountered an error.
+///
+/// # Safety
+///
+/// The function is safe to call as long as the provided `db` parameter implements the `DatabaseInterface` trait correctly.
+///
+/// # Notes
+///
+/// - The function uses the `get_server_port` function to determine the port to bind the server to.
+/// - It creates a server address tuple `(Ipv4Addr, u16)` with the unspecified IP address and the determined port.
+/// - The function generates a Swagger UI URL based on the server address.
+/// - It creates an `HttpServer` instance and configures it with the provided `db` parameter, logger middleware, Swagger UI, and content routes.
+/// - Finally, it binds the server to the server address and runs it asynchronously.
+///
+/// # Returns
+///
+/// The function returns a `std::io::Result<()>` indicating whether the server started successfully or encountered an error.
+///
+pub async fn run_server<T: DatabaseInterface + Clone + Send + Sync + 'static>(
+    db: T,
+) -> std::io::Result<()> {
     let port = get_server_port();
-    let server_address = (Ipv4Addr::UNSPECIFIED, port);
+    let server_address: (Ipv4Addr, u16) = (Ipv4Addr::UNSPECIFIED, port);
     let swagger_url = format!(
         "http://{}:{}/swagger-ui/",
         server_address.0, server_address.1
