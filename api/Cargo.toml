@@ -48,6 +48,11 @@ tokio = { version = "1", features = ["full"] }
 log = "0.4"
 anyhow = "1.0"
 
+mongodb = "2.0"
+bson = "2.0"
+
+mime = "0.3.17"
+
 [dependencies.shared]
 path = "../shared"
 
