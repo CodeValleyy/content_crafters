@@ -37,15 +37,6 @@ pub struct ContentDetails {
 
     #[schema(example = "\"v1.2.0\"")]
     pub version: String,
-
-    #[schema(example = "vec![\"comment1\", \"comment2\"]")]
-    pub comments: Vec<String>,
-
-    #[schema(example = "42")]
-    pub likes: i32,
-
-    #[schema(example = "true")]
-    pub editable: bool,
     /*
         #[schema(example = "2021-08-01T12:34:56Z")]
         pub created_at: DateTime<chrono::Utc>,
@@ -65,9 +56,6 @@ impl ContentDetails {
         author: String,
         tags: Vec<String>,
         version: String,
-        comments: Vec<String>,
-        likes: i32,
-        editable: bool,
     ) -> ContentDetails {
         ContentDetails {
             id,
@@ -78,9 +66,6 @@ impl ContentDetails {
             author,
             tags,
             version,
-            comments,
-            likes,
-            editable,
         }
 
         /* TODO: Add the following fields:

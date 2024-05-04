@@ -1,5 +1,6 @@
+use actix_web::web::{Data, JsonConfig};
 use actix_web::{middleware::Logger, web, App, HttpServer};
-use shared::database::db_interface::DatabaseInterface;
+use shared::database::db_interface::DatabaseConnection;
 use std::env;
 use std::net::Ipv4Addr;
 use utoipa::OpenApi;
@@ -46,9 +47,17 @@ const DEFAULT_PORT: u16 = 8080;
 ///
 /// The function returns a `std::io::Result<()>` indicating whether the server started successfully or encountered an error.
 ///
-pub async fn run_server<T: DatabaseInterface + Clone + Send + Sync + 'static>(
-    db: T,
-) -> std::io::Result<()> {
+pub async fn run_server(db: DatabaseConnection) -> std::io::Result<()> {
+    let web_db = match db {
+        DatabaseConnection::Real(real_db) => real_db.client,
+        _ => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Unsupported database connection",
+            ))
+        }
+    };
+
     let port = get_server_port();
     let server_address: (Ipv4Addr, u16) = (Ipv4Addr::UNSPECIFIED, port);
     let swagger_url = format!(
@@ -61,7 +70,8 @@ pub async fn run_server<T: DatabaseInterface + Clone + Send + Sync + 'static>(
 
     HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(db.clone()))
+            .app_data(Data::new(web_db.clone()))
+            .app_data(JsonConfig::default())
             .wrap(Logger::default())
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}")

@@ -1,6 +1,9 @@
 use actix_web::web;
 
-use super::handlers::{add_comment, add_like, create_version, delete, delete_comment, get_details, get_version, list_versions, remove_like, update_comment, update_metadata, upload};
+use super::handlers::{
+    add_comment, add_like, create_version, delete, delete_comment, get_details, get_version,
+    list_versions, remove_like, update_comment, update_metadata, upload,
+};
 
 pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -13,7 +16,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
                 web::scope("/{id}/comment")
                     .route("", web::post().to(add_comment))
                     .route("/{comment_id}", web::put().to(update_comment))
-                    .route("/{comment_id}", web::delete().to(delete_comment))
+                    .route("/{comment_id}", web::delete().to(delete_comment)),
             )
             .route("/{id}/like", web::post().to(add_like))
             .route("/{id}/like", web::delete().to(remove_like))
@@ -21,7 +24,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
                 web::scope("/{id}/versions")
                     .route("", web::get().to(list_versions))
                     .route("", web::post().to(create_version))
-                    .route("/{version}", web::get().to(get_version))
-            )
+                    .route("/{version}", web::get().to(get_version)),
+            ),
     );
 }
