@@ -1,16 +1,5 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-//use chrono::{DateTime, Utc};
-
-#[derive(ToSchema)]
-pub struct UploadFile {
-    pub file: Vec<u8>,
-}
-
-#[derive(serde::Deserialize)]
-pub struct ContentId {
-    pub id: String,
-}
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct ContentDetails {
