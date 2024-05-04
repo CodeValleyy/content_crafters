@@ -1,12 +1,22 @@
 use actix_web::web::{Data, JsonConfig};
 use actix_web::{middleware::Logger, web, App, HttpServer};
-use shared::database::db_interface::DatabaseConnection;
+use shared::{
+    database::db_interface::DatabaseConnection,
+    models::{
+        upload_file::UploadFile,
+        content_details::ContentDetails,
+        content_id::ContentId,
+        program::Program,
+    },
+};
+
+
 use std::env;
 use std::net::Ipv4Addr;
 use utoipa::OpenApi;
 
 use crate::endpoints::content;
-use crate::endpoints::content::models::{ContentDetails, UploadFile};
+
 use crate::endpoints::content::routes::config as content_config;
 
 use log::info;
@@ -98,7 +108,12 @@ fn get_server_port() -> u16 {
         content::handlers::get_details,
     ),
     components(
-        schemas(ContentDetails, UploadFile/*, TODO: Add other schemas here */)
+        schemas(
+            ContentDetails,
+            UploadFile,
+            ContentId,
+            Program,
+        ),
     ),
 
     tags(

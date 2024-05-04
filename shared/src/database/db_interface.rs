@@ -24,7 +24,7 @@ pub enum DatabaseConnection {
 
 impl DatabaseInterface for DatabaseConnection {
     async fn init() -> Result<Self> {
-        if env::var("USE_MOCK_DB").unwrap_or_else(|_| "false".to_string()) == "true" {
+        if env::var("USE_MOCK_DB").unwrap_or_else(|_| "0".to_string()) == "1" {
             Ok(DatabaseConnection::Mock(MockDb::init().await?))
         } else {
             Ok(DatabaseConnection::Real(Db::init().await?))

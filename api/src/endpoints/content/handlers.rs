@@ -1,16 +1,16 @@
 use std::time::SystemTime;
 
-use crate::endpoints::content::models::ContentDetails;
 use actix_multipart::Multipart;
 use actix_web::{web, Error, HttpResponse, Responder};
+use bson::oid::ObjectId;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use log::info;
 use mongodb::{
-    bson::{doc, DateTime as BsonDateTime},
-    Database,
+    bson::{doc, DateTime as BsonDateTime}, Collection, Database
 };
-
+use actix_web::error;
+use shared::models::program::Program;
 #[utoipa::path(
     post,
     path = "/content/upload",
@@ -99,27 +99,27 @@ pub async fn upload(
     params(("id"=String, Path, description = "Content database id")),
 
     responses(
-        (status = 200, description = "Content details", body = ContentDetails),
+        (status = 200, description = "Content details", body = Program),
         (status = 404, description = "Content not found"),
     )
 )]
-pub(super) async fn get_details(name: web::Path<String>) -> impl Responder {
-    let result = ContentDetails {
-        id: name.into_inner(),
-        title: "Sample title".to_string(),
-        description: "Sample description".to_string(),
-        output_type: "text/html".to_string(),
-        input_type: "text/plain".to_string(),
-        author: "John Doe".to_string(),
-        tags: vec![
-            "utility".to_string(),
-            "transformation".to_string(),
-            "text processing".to_string(),
-        ],
-        version: "v1.2.0".to_string(),
+pub async fn get_details(
+    db: web::Data<Database>,
+    id: web::Path<String> 
+) -> Result<HttpResponse, Error> {
+    let collection: Collection<Program> = db.collection("programs");
+
+    let object_id = match ObjectId::parse_str(&id.as_ref()) {
+        Ok(oid) => oid,
+        Err(_) => return Err(error::ErrorBadRequest("Invalid ID format")),
     };
 
-    HttpResponse::Ok().json(result)
+    let result = collection.find_one(doc! {"_id": object_id}, None).await;
+    match result {
+        Ok(Some(program)) => Ok(HttpResponse::Ok().json(program)),
+        Ok(None) => Ok(HttpResponse::NotFound().finish()),
+        Err(e) => Err(error::ErrorInternalServerError(format!("Database query failed: {}", e))),
+    }
 }
 
 pub(super) async fn update_metadata() -> impl Responder {
