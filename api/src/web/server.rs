@@ -105,6 +105,7 @@ fn get_server_port() -> u16 {
         content::handlers::upload,
         content::handlers::get_details,
         content::handlers::update_metadata,
+        content::handlers::delete,
     ),
     components(
         schemas(

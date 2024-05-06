@@ -174,8 +174,33 @@ pub async fn update_metadata(
         ))),
     }
 }
-pub(super) async fn delete() -> impl Responder {
-    HttpResponse::Ok().body("delete")
+
+#[utoipa::path(
+    delete,
+    path = "/content/{id}",
+    tag = "content",
+    params(("id"=String, Path, description = "Delete Content by id")),
+    responses(
+        (status = 200, description = "Content deleted", body = String),
+        (status = 404, description = "Content not found"),
+    )
+)]
+pub async fn delete(db: web::Data<Database>, id: web::Path<String>) -> Result<HttpResponse, Error> {
+    let collection = db.collection::<Program>("programs");
+    let object_id = match ObjectId::parse_str(&id.as_ref()) {
+        Ok(oid) => oid,
+        Err(_) => return Err(error::ErrorBadRequest("Invalid ID format")),
+    };
+
+    let delete_result = collection.delete_one(doc! {"_id": object_id}, None).await;
+    match delete_result {
+        Ok(delete) if delete.deleted_count == 1 => Ok(HttpResponse::Ok().body("Content deleted")),
+        Ok(_) => Ok(HttpResponse::NotFound().body("Content not found")),
+        Err(e) => Err(error::ErrorInternalServerError(format!(
+            "Database operation failed: {}",
+            e
+        ))),
+    }
 }
 
 pub(super) async fn add_comment() -> impl Responder {
