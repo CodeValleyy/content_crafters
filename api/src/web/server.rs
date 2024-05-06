@@ -1,3 +1,4 @@
+use crate::web::server::content::update_program_dto::UpdateProgramDto;
 use actix_web::web::{Data, JsonConfig};
 use actix_web::{middleware::Logger, web, App, HttpServer};
 use shared::{
@@ -106,10 +107,12 @@ fn get_server_port() -> u16 {
     paths(
         content::handlers::upload,
         content::handlers::get_details,
+        content::handlers::update_metadata,
     ),
     components(
         schemas(
             ContentDetails,
+            UpdateProgramDto,
             UploadFile,
             ContentId,
             Program,

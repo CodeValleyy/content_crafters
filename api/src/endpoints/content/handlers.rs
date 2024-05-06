@@ -11,6 +11,8 @@ use mongodb::{
 };
 use actix_web::error;
 use shared::models::program::Program;
+use crate::endpoints::content::update_program_dto::UpdateProgramDto;
+
 #[utoipa::path(
     post,
     path = "/content/upload",
@@ -96,7 +98,7 @@ pub async fn upload(
     get,
     path = "/content/{id}",
     tag = "content",
-    params(("id"=String, Path, description = "Content database id")),
+    params(("id"=String, Path, description = "Get Content by id")),
 
     responses(
         (status = 200, description = "Content details", body = Program),
@@ -105,7 +107,7 @@ pub async fn upload(
 )]
 pub async fn get_details(
     db: web::Data<Database>,
-    id: web::Path<String> 
+    id: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
     let collection: Collection<Program> = db.collection("programs");
 
@@ -122,8 +124,48 @@ pub async fn get_details(
     }
 }
 
-pub(super) async fn update_metadata() -> impl Responder {
-    HttpResponse::Ok().body("update_metadata")
+#[utoipa::path(
+    put,
+    path = "/content/{id}",
+    tag = "content",
+    params(("id"=String, Path, description = "Edit Content by id")),
+    request_body(
+        content_type = "application/json",
+        content = UpdateProgramDto
+    ),
+
+responses(
+        (status = 200, description = "Content metadata updated", body = String),
+        (status = 404, description = "Content not found"),
+    )
+)]
+pub async fn update_metadata(
+    db: web::Data<Database>,
+    id: web::Path<String>,
+    update_dto: web::Json<UpdateProgramDto>
+) -> Result<HttpResponse, Error> {
+    let collection = db.collection::<Program>("programs");
+    let object_id = match ObjectId::parse_str(&id.as_ref()) {
+        Ok(oid) => oid,
+        Err(_) => return Err(error::ErrorBadRequest("Invalid ID format")),
+    };
+    let update_doc = update_dto.build_update_document();
+    let update_command = doc! {
+        "$set": update_doc,
+        "$currentDate": {"update_time": true}
+    };
+
+    let update_result = collection.update_one(
+        doc! {"_id": object_id},
+        update_command,
+        None
+    ).await;
+
+    match update_result {
+        Ok(update) if update.matched_count == 1 => Ok(HttpResponse::Ok().body("Content metadata updated")),
+        Ok(_) => Ok(HttpResponse::NotFound().body("Content not found")),
+        Err(e) => Err(error::ErrorInternalServerError(format!("Database operation failed: {}", e))),
+    }
 }
 pub(super) async fn delete() -> impl Responder {
     HttpResponse::Ok().body("delete")
