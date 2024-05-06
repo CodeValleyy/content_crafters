@@ -3,10 +3,7 @@ use actix_web::web::{Data, JsonConfig};
 use actix_web::{middleware::Logger, web, App, HttpServer};
 use shared::{
     database::db_interface::DatabaseConnection,
-    models::{
-        content_details::ContentDetails, content_id::ContentId, program::Program,
-        upload_file::UploadFile,
-    },
+    models::{program::Program, upload_file::UploadFile},
 };
 
 use std::env;
@@ -109,10 +106,8 @@ fn get_server_port() -> u16 {
     ),
     components(
         schemas(
-            ContentDetails,
             UpdateProgramDto,
             UploadFile,
-            ContentId,
             Program,
         ),
     ),

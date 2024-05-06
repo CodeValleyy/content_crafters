@@ -11,7 +11,7 @@ pub struct Program {
     pub id: ObjectId,
     #[serde(rename = "owner_id")]
     #[schema(example = "60f7b3b3d4b3f3b3f3b3f3b3")]
-    pub owner_id: String,
+    pub owner_id: ObjectId,
     #[serde(rename = "filename")]
     #[schema(example = "example.py")]
     pub filename: String,

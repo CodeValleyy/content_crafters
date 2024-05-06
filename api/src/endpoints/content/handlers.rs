@@ -1,5 +1,3 @@
-use std::time::SystemTime;
-
 use crate::endpoints::content::update_program_dto::UpdateProgramDto;
 use actix_multipart::Multipart;
 use actix_web::error;
@@ -7,12 +5,15 @@ use actix_web::{web, Error, HttpResponse, Responder};
 use bson::oid::ObjectId;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
-use log::info;
+use log::{debug, info};
 use mongodb::{
     bson::{doc, DateTime as BsonDateTime},
     Collection, Database,
 };
+use serde_json::json;
+use shared::database::api_response::ApiResponse;
 use shared::models::program::Program;
+use std::time::SystemTime;
 
 #[utoipa::path(
     post,
@@ -48,7 +49,7 @@ pub async fn upload(
 
             let content_type = field.content_type().expect("dripping in dior").to_string();
             let metadata = doc! {
-                "owner_id": "123456789", // TODO: get the owner id from the request
+                "owner_id": ObjectId::new(), // TODO : get the owner id
                 "filename": filename,
                 "code_url": "https://codevalley.com/filename?owner_id=123456789", // TODO: get the code url
                 "content_type": content_type,
@@ -60,7 +61,7 @@ pub async fn upload(
                 "file_path": format!("/path/to/save/{}", filename), // TODO: get the path to save the file (local storage, GCP, etc.)
                 "file_hash": "example_hash", // TODO: get an algorithm to calculate the file hash (MD5, SHA256, etc.)
             };
-            info!("Metadata: {:?}", metadata);
+            debug!("Metadata: {:?}", metadata);
 
             /* TODO: File Saving example (commented out for now)
             let mut file_bytes = web::BytesMut::new();
@@ -77,22 +78,30 @@ pub async fn upload(
             // TODO: Implement upload_to_gcp_storage
             //upload_to_gcp_storage(file_bytes.freeze()).await?;
 
-            // TODO rn use the mongodb (run command) to store the metadata of the file
+            // TODO rn use the mongodb (run command) to store the metadata of the file not the file itself
             let collection = db.collection("programs");
-            match collection.insert_one(metadata, None).await {
-                Ok(result) => result,
-                Err(e) => {
-                    return Ok(
-                        HttpResponse::BadRequest().body(format!("Error inserting document: {}", e))
+            let insert_result = collection.insert_one(metadata, None).await;
+            return match insert_result {
+                Ok(insert_response) => {
+                    let response_data = ApiResponse::new(
+                        "File uploaded and metadata saved",
+                        insert_response
+                            .inserted_id
+                            .as_object_id()
+                            .map(|oid| oid.to_hex()),
                     );
+                    Ok(HttpResponse::Created().json(response_data))
+                }
+                Err(e) => {
+                    let error_response =
+                        ApiResponse::new(format!("Error inserting document: {}", e), None);
+                    Ok(HttpResponse::BadRequest().json(error_response))
                 }
             };
-
-            info!("File uploaded and metadata saved: {}", filename);
         }
     }
 
-    Ok(HttpResponse::Created().body("Upload successful"))
+    Ok(HttpResponse::Ok().json(json!({"message": "No files were uploaded."})))
 }
 
 #[utoipa::path(
