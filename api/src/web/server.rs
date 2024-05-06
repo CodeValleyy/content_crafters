@@ -4,13 +4,10 @@ use actix_web::{middleware::Logger, web, App, HttpServer};
 use shared::{
     database::db_interface::DatabaseConnection,
     models::{
+        content_details::ContentDetails, content_id::ContentId, program::Program,
         upload_file::UploadFile,
-        content_details::ContentDetails,
-        content_id::ContentId,
-        program::Program,
     },
 };
-
 
 use std::env;
 use std::net::Ipv4Addr;

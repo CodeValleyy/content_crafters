@@ -1,17 +1,18 @@
 use std::time::SystemTime;
 
+use crate::endpoints::content::update_program_dto::UpdateProgramDto;
 use actix_multipart::Multipart;
+use actix_web::error;
 use actix_web::{web, Error, HttpResponse, Responder};
 use bson::oid::ObjectId;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use log::info;
 use mongodb::{
-    bson::{doc, DateTime as BsonDateTime}, Collection, Database
+    bson::{doc, DateTime as BsonDateTime},
+    Collection, Database,
 };
-use actix_web::error;
 use shared::models::program::Program;
-use crate::endpoints::content::update_program_dto::UpdateProgramDto;
 
 #[utoipa::path(
     post,
@@ -120,7 +121,10 @@ pub async fn get_details(
     match result {
         Ok(Some(program)) => Ok(HttpResponse::Ok().json(program)),
         Ok(None) => Ok(HttpResponse::NotFound().finish()),
-        Err(e) => Err(error::ErrorInternalServerError(format!("Database query failed: {}", e))),
+        Err(e) => Err(error::ErrorInternalServerError(format!(
+            "Database query failed: {}",
+            e
+        ))),
     }
 }
 
@@ -142,7 +146,7 @@ responses(
 pub async fn update_metadata(
     db: web::Data<Database>,
     id: web::Path<String>,
-    update_dto: web::Json<UpdateProgramDto>
+    update_dto: web::Json<UpdateProgramDto>,
 ) -> Result<HttpResponse, Error> {
     let collection = db.collection::<Program>("programs");
     let object_id = match ObjectId::parse_str(&id.as_ref()) {
@@ -155,16 +159,19 @@ pub async fn update_metadata(
         "$currentDate": {"update_time": true}
     };
 
-    let update_result = collection.update_one(
-        doc! {"_id": object_id},
-        update_command,
-        None
-    ).await;
+    let update_result = collection
+        .update_one(doc! {"_id": object_id}, update_command, None)
+        .await;
 
     match update_result {
-        Ok(update) if update.matched_count == 1 => Ok(HttpResponse::Ok().body("Content metadata updated")),
+        Ok(update) if update.matched_count == 1 => {
+            Ok(HttpResponse::Ok().body("Content metadata updated"))
+        }
         Ok(_) => Ok(HttpResponse::NotFound().body("Content not found")),
-        Err(e) => Err(error::ErrorInternalServerError(format!("Database operation failed: {}", e))),
+        Err(e) => Err(error::ErrorInternalServerError(format!(
+            "Database operation failed: {}",
+            e
+        ))),
     }
 }
 pub(super) async fn delete() -> impl Responder {

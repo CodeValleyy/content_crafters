@@ -1,9 +1,8 @@
+use crate::serializers::bson_datetime_serializer;
 use chrono::{DateTime, Utc};
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::serializers::{bson_datetime_serializer};
-
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct Program {
@@ -24,7 +23,7 @@ pub struct Program {
     pub content_type: String,
     #[serde(rename = "file_size")]
     #[schema(example = "1024")]
-    pub file_size: i64, 
+    pub file_size: i64,
     #[serde(rename = "input_type")]
     #[schema(example = "text/plain")]
     pub input_type: String,
