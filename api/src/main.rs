@@ -1,12 +1,20 @@
+use anyhow::Result;
 use api::web::run_server;
 use cli::parser::{CliApiArgs, Parser};
-use std::error::Error;
+use dotenv::dotenv;
+use log::info;
 use logger::init_logger;
+use shared::database::db_interface::{DatabaseConnection, DatabaseInterface};
 
-#[actix_web::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let cli_args: CliApiArgs = CliApiArgs::parse();
+    dotenv().ok();
     init_logger(cli_args.verbose, cli_args.debug, cli_args.trace)?;
-    run_server().await?;
+    let db = DatabaseConnection::init().await?;
+
+    info!("Database connection established.");
+    run_server(db).await?;
+
     Ok(())
 }

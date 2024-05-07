@@ -3,13 +3,31 @@ name = "shared"
 version = "0.1.0"
 edition = "2021"
 
-authors = ["James <jabib@myges.fr>", "Ronan <rkielt@myges.fr>", "Charles <ccretois@myges.fr>"]
+authors = [
+    "James <jabib@myges.fr>",
+    "Ronan <rkielt@myges.fr>",
+    "Charles <ccretois@myges.fr>",
+]
 description = "A content management and social interaction platform"
 repository = "https://github.com/jabibamman/content_crafters"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+
 [dependencies]
 # JSON handling
 serde = { version = "1.0.195", features = ["derive"] }
 serde_json = "1.0.111"
+mongodb = "2.0"
+bson = { version = "2.0", features = ["chrono-0_4"] }
+chrono = { version = "0.4", features = ["serde"] }
+tokio = { version = "1", features = ["full"] }
+dotenv = "0.15"
+anyhow = "1.0"
+utoipa = { version = "4.2.0", features = ["actix_extras"] }
+utoipa-swagger-ui = { version = "6.0.0", features = ["actix-web"] }
+
+log = "0.4"
+[dependencies.logger]
+path = "../logger"
+

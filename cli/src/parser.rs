@@ -6,7 +6,7 @@ pub use clap::Parser;
 /// - `verbose`: A flag to enable/disable logging. It is of type `u8` and has a default value of `0`. It can be set using the `-v` or `--verbose` command-line options. The flag can be repeated to increase the verbosity level.
 /// - `debug`: A flag to enable/disable debug mode. It is of type `u8` and has a default value of `0`. It can be set using the `-d` or `--debug` command-line options. The flag can be repeated to increase the debug level.
 /// - `trace`: A flag to enable/disable trace mode. It is of type `u8` and has a default value of `0`. It can be set using the `-t` or `--trace` command-line options. The flag can be repeated to increase the trace level.
-
+///
 /// This struct is used for parsing command-line arguments using the `clap` crate.
 #[derive(Parser, Debug, Clone)]
 pub struct CliApiArgs {
