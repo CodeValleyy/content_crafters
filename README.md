@@ -42,6 +42,32 @@ If you want to run the application with different port, you can set the `APP_POR
 APP_PORT=3000 cargo run
 ```
 
+## Kubernetes
+
+The application provides a Kubernetes deployment file in the `k8s` directory. You can deploy the application using the following command:
+
+```bash
+./deploy_k8s.sh
+```
+
+The script will create a namespace, deployment, and service for the application.
+
+### For the environment variables
+
+We use a secret service to store the environment variables. You can create the secret using the following command:
+
+```bash
+kubectl apply -f secret.yaml
+```
+
+If you want to add more environment variables, you can add them to the `secret.yaml` file.
+
+**WARNING**: The environment variables are base64 encoded. You can encode your environment variables using the following command:
+
+```bash
+echo -n "your-environment-variable" | base64
+```
+
 ## CLI
 
 The application also provides a CLI to interact with the service. You can run the CLI using the following command:
