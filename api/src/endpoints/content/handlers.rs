@@ -47,7 +47,7 @@ pub async fn upload(
 
             info!("Uploading file: {}", filename);
 
-            let content_type = field.content_type().expect("dripping in dior").to_string();
+            let content_type = field.content_type().expect("").to_string();
             let metadata = doc! {
                 "owner_id": ObjectId::new(), // TODO : get the owner id
                 "filename": filename,

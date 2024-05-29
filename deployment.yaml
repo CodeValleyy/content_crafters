@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: content-crafters-deployment
+  labels:
+    app: content-crafters
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: content-crafters
+  template:
+    metadata:
+      labels:
+        app: content-crafters
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: content-crafters
+          image: gcr.io/pa2024-421814/content-crafters:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: content-crafters-secret
+                  key: mongo-uri
+            - name: MONGO_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: content-crafters-secret
+                  key: mongo-username
+            - name: MONGO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: content-crafters-secret
+                  key: mongo-password
+            - name: MONGO_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: content-crafters-secret
+                  key: mongo-port
+            - name: MONGO_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: content-crafters-secret
+                  key: mongo-db-name
+            - name: APP_PORT
+              value: "3000"
+            - name: VERBOSE
+              value: "1"
+            - name: DEBUG
+              value: "0"
+            - name: TRACE
+              value: "0"
+            - name: USE_MOCK_DB
+              value: "false"
+          resources:
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+            requests:
+              cpu: "0.5"
+              memory: "256Mi"
