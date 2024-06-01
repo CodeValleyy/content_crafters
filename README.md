@@ -1,5 +1,5 @@
 # Content Crafters
-    
+
 [![Build Status](https://travis-ci.com/jabibamman/content_crafters.svg?branch=main)](https://travis-ci.com/jabibamman/content_crafters)
 [![codecov](https://codecov.io/gh/jabibamman/content_crafters/branch/main/graph/badge.svg?token=QZQZQZQZQZ)](https://codecov.io/gh/jabibamman/content_crafters)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -90,7 +90,7 @@ docker build -t content_crafters .
 docker run -d -p 3000:3000 -e APP_PORT=3000 content_crafters
 ```
 
-If you want to run the container with logs, you can add the 
+If you want to run the container with logs, you can add the
 `-e VERBOSE=1`
 OR
 `-e DEBUG=1`
@@ -104,4 +104,12 @@ You can also use Docker Compose to run the application. The `docker-compose.yml`
 
 ```bash
 docker-compose up --build
+```
+
+## Useful GCC commands
+
+### Get all the ip adresses of the current cluster
+
+```bash
+> gcloud compute instances list --filter="name~'gke-'" --format="table(name, networkInterfaces[0].accessConfigs[0].natIP)"
 ```
