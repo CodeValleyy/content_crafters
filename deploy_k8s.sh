@@ -19,6 +19,7 @@ fi
 
 kubectl apply -f deployment.yaml
 kubectl apply -f service.yaml
+kubectl apply -f ingress.yaml
 
 if [ "$deploy_content_crafters" = "y" ] || [ "$deploy_content_crafters" = "Y" ]; then
   kubectl set image deployment/content-crafters-deployment content-crafters=gcr.io/$project_id/content-crafters:latest
