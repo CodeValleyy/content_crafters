@@ -26,7 +26,7 @@ futures = "0.3.17"
 
 # For the API documentation
 utoipa = { version = "4.2.0", features = ["actix_extras"] }
-utoipa-swagger-ui = { version = "7.1.0", features = ["actix-web"] }
+utoipa-swagger-ui = { version = "6.0.0", features = ["actix-web"] }
 
 # async runtime
 #tokio = { version = "1", features = ["full"] }

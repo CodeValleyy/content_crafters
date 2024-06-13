@@ -112,12 +112,13 @@ async fn handle_file_upload(
             let error_response = ApiResponse::new(
                 format!("Error uploading to Firebase: {}", error_message),
                 None,
+                None,
             );
             Ok(HttpResponse::BadRequest().json(error_response))
         }
         Err(e) => {
             let error_response =
-                ApiResponse::new(format!("Error uploading to Firebase: {}", e), None);
+                ApiResponse::new(format!("Error uploading to Firebase: {}", e), None, None);
             Ok(HttpResponse::BadRequest().json(error_response))
         }
     }
@@ -132,10 +133,15 @@ async fn save_metadata_to_db(
     file_size: i64,
     bson_upload_time: BsonDateTime,
 ) -> Result<HttpResponse, Error> {
+    let code_url = format!(
+        "https://firebasestorage.googleapis.com/v0/b/{}/o/{}?alt=media",
+        firebase_bucket, file_path
+    );
+
     let metadata = doc! {
         "owner_id": ObjectId::new(), // TODO: get the owner id
         "filename": filename,
-        "code_url": format!("https://firebasestorage.googleapis.com/v0/b/{}/o/{}?alt=media", firebase_bucket, file_path),
+        "code_url": &code_url,
         "content_type": content_type,
         "file_size": file_size,
         "upload_time": bson_upload_time,
@@ -155,11 +161,13 @@ async fn save_metadata_to_db(
                     .inserted_id
                     .as_object_id()
                     .map(|oid| oid.to_hex()),
+                Some(code_url),
             );
             Ok(HttpResponse::Created().json(response_data))
         }
         Err(e) => {
-            let error_response = ApiResponse::new(format!("Error inserting document: {}", e), None);
+            let error_response =
+                ApiResponse::new(format!("Error inserting document: {}", e), None, None);
             Ok(HttpResponse::BadRequest().json(error_response))
         }
     }
