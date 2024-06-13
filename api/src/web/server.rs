@@ -79,6 +79,7 @@ pub async fn run_server(db: DatabaseConnection) -> std::io::Result<()> {
                 SwaggerUi::new("/swagger-ui/{_:.*}")
                     .url("/api-docs/openapi.json", generate_openapi()),
             )
+            .service(web::resource("/health").to(|| async { "OK" }))
             .service(web::scope("/v1").configure(content_config))
     })
     .bind(server_address)?
