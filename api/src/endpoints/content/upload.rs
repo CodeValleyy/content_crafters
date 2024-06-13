@@ -78,7 +78,7 @@ async fn handle_file_upload(
         file_bytes.extend_from_slice(&data);
     }
 
-    let file_path = format!("content/{}", filename);
+    let file_path = format!("content%2F{}", filename);
     let upload_url = format!(
         "https://firebasestorage.googleapis.com/v0/b/{}/o?name={}",
         firebase_bucket, file_path

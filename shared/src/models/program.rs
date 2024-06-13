@@ -24,12 +24,14 @@ pub struct Program {
     #[serde(rename = "file_size")]
     #[schema(example = "1024")]
     pub file_size: i64,
+    /* At the moment, we don't have these fields in the model
     #[serde(rename = "input_type")]
     #[schema(example = "text/plain")]
     pub input_type: String,
     #[serde(rename = "output_type")]
     #[schema(example = "text/plain")]
     pub output_type: String,
+    */
     #[serde(rename = "upload_time", with = "bson_datetime_serializer")]
     #[schema(example = "2024-08-01T12:34:56Z")]
     pub upload_time: DateTime<Utc>,
