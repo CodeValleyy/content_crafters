@@ -16,7 +16,7 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      - MONGO_URI=mongodb+srv://${MONGO_USERNAME}:${MONGO_PASSWORD}@content-crafters-db.xpn750n.mongodb.net/${MONGO_DB_NAME}/?retryWrites=true&w=majority&appName=${MONGO_DB_NAME}
+      - MONGO_URI=mongodb+srv://${MONGO_USERNAME}:${MONGO_PASSWORD}@content-crafters-db.xpn750n.mongodb.net/?retryWrites=true&w=majority&appName=${MONGO_DB_NAME}
       - APP_PORT=${APP_PORT}
       - VERBOSE=${VERBOSE}
       - DEBUG=${DEBUG}
