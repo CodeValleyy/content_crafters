@@ -19,10 +19,10 @@ actix-web = "4.4.1"
 actix-rt = "2.5"          # Runtime for actix-web
 actix-multipart = "0.6.1" # For handling multipart form data
 
-# Futures for async programming
+# Futures pour la programmation asynchrone
 futures = "0.3.17"
 
-sanitize-filename = "0.5.0"
+#sanitize-filename = "0.5.0"
 
 # For the API documentation
 utoipa = { version = "4.2.0", features = ["actix_extras"] }
@@ -32,7 +32,7 @@ utoipa-swagger-ui = { version = "6.0.0", features = ["actix-web"] }
 #tokio = { version = "1", features = ["full"] }
 
 # WebSocket integration with Tokio
-tokio-tungstenite = "0.21.0"
+#tokio-tungstenite = "0.23.0"
 
 # JSON handling
 serde = { version = "1.0.195", features = ["derive"] }
@@ -48,10 +48,12 @@ tokio = { version = "1", features = ["full"] }
 log = "0.4"
 anyhow = "1.0"
 
+# MongoDB driver
 mongodb = "2.0"
 bson = "2.0"
 
-mime = "0.3.17"
+# HTTP client for making request to firebase
+reqwest = { version = "0.12.4", features = ["multipart"] }
 
 [dependencies.shared]
 path = "../shared"

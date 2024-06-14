@@ -1,21 +1,18 @@
-use crate::web::server::content::update_program_dto::UpdateProgramDto;
 use actix_web::web::{Data, JsonConfig};
 use actix_web::{middleware::Logger, web, App, HttpServer};
+use log::info;
 use shared::{
     database::db_interface::DatabaseConnection,
     models::{program::Program, upload_file::UploadFile},
 };
-
 use std::env;
 use std::net::Ipv4Addr;
 use utoipa::OpenApi;
-
-use crate::endpoints::content;
-
-use crate::endpoints::content::routes::config as content_config;
-
-use log::info;
 use utoipa_swagger_ui::SwaggerUi;
+
+use crate::endpoints::content::{
+    routes::config as content_config, update_program_dto::UpdateProgramDto,
+};
 
 const DEFAULT_PORT: u16 = 8080;
 
@@ -82,6 +79,7 @@ pub async fn run_server(db: DatabaseConnection) -> std::io::Result<()> {
                 SwaggerUi::new("/swagger-ui/{_:.*}")
                     .url("/api-docs/openapi.json", generate_openapi()),
             )
+            .service(web::resource("/health").to(|| async { "OK" }))
             .service(web::scope("/v1").configure(content_config))
     })
     .bind(server_address)?
@@ -99,10 +97,10 @@ fn get_server_port() -> u16 {
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        content::handlers::upload,
-        content::handlers::get_details,
-        content::handlers::update_metadata,
-        content::handlers::delete,
+        crate::endpoints::content::upload::upload,
+        crate::endpoints::content::metadata::get_details,
+        crate::endpoints::content::metadata::update_metadata,
+        crate::endpoints::content::metadata::delete,
     ),
     components(
         schemas(
