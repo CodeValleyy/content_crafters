@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: content crafters api
+    runtime: node
+    repo: https://github.com/jabibamman/content_crafters
+    region: frankfurt # optional (defaults to oregon)
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free # optional (defaults to starter instance type)
+    branch: main # optional (defaults to master)
+    envVars:
+      - key: MONGO_URI
+        sync: false # provide MONGO_URI in the Render Dashboard
+
+      - key: MONGO_USERNAME
+        sync: false # provide MONGO_USERNAME in the Render Dashboard
+
+      - key: MONGO_PASSWORD
+        sync: false # provide MONGO_PASSWORD in the Render Dashboard
+
+      - key: MONGO_PORT
+        value: 27017
+
+      - key: MONGO_DB_NAME
+        value: content
+
+      - key: APP_PORT
+        value: 3000
+
+      - key: VERBOSE
+        value: 1
+
+      - key: DEBUG
+        value: 1
+
+      - key: TRACE
+        value: 1
+
+      - key: USE_MOCK_DB
+        value: "true"
