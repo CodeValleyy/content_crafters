@@ -1,13 +1,13 @@
 services:
   - type: web
     name: content crafters api
-    runtime: node
+    runtime: rust
     repo: https://github.com/jabibamman/content_crafters
     region: frankfurt # optional (defaults to oregon)
-    buildCommand: npm install
-    startCommand: npm start
+    buildCommand: ./build.sh
+    startCommand: cargo run --release
     plan: free # optional (defaults to starter instance type)
-    branch: main # optional (defaults to master)
+    branch: master # optional (defaults to master)
     envVars:
       - key: MONGO_URI
         sync: false # provide MONGO_URI in the Render Dashboard
