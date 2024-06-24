@@ -1,6 +1,6 @@
 use crate::serializers::bson_datetime_serializer;
+use bson::oid::ObjectId;
 use chrono::{DateTime, Utc};
-use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 

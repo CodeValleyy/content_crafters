@@ -2,6 +2,7 @@ use crate::endpoints::content::update_program_dto::UpdateProgramDto;
 use actix_web::{web, Error, HttpResponse};
 use bson::oid::ObjectId;
 use futures::StreamExt;
+use log::{info, warn};
 use mongodb::{bson::doc, Collection, Database};
 use shared::models::program::Program;
 
@@ -21,10 +22,18 @@ pub async fn get_details(
 ) -> Result<HttpResponse, Error> {
     let collection: Collection<Program> = db.collection("programs");
 
-    let object_id = match ObjectId::parse_str(&id.as_ref()) {
+    let id_str = id.as_ref().trim();
+    info!("Raw ID string: {}", id_str);
+
+    let object_id = match ObjectId::parse_str(id_str) {
         Ok(oid) => oid,
-        Err(_) => return Err(actix_web::error::ErrorBadRequest("Invalid ID format")),
+        Err(e) => {
+            warn!("Invalid ID format: {}", e);
+            return Err(actix_web::error::ErrorBadRequest("Invalid ID format"));
+        }
     };
+
+    info!("Parsed ObjectId: {}", object_id);
 
     let result = collection.find_one(doc! {"_id": object_id}, None).await;
     match result {
