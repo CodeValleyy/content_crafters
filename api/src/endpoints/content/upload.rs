@@ -1,6 +1,5 @@
 use actix_multipart::Multipart;
 use actix_web::{web, Error, HttpResponse};
-use bson::oid::ObjectId;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use log::info;
@@ -12,6 +11,10 @@ use reqwest::Client;
 use serde_json::json;
 use shared::database::api_response::ApiResponse;
 use std::time::SystemTime;
+
+use utils::error::UploadError;
+
+use crate::utils;
 
 #[utoipa::path(
     post,
@@ -34,49 +37,59 @@ pub async fn upload(
         std::env::var("FIREBASE_STORAGE_BUCKET").expect("FIREBASE_STORAGE_BUCKET must be set");
     let client = Client::new();
 
+    let mut owner_id: Option<i32> = None;
+    let mut file_data: Option<Vec<u8>> = None;
+    let mut filename: Option<String> = None;
+    let mut content_type: Option<String> = None;
+
     while let Some(item) = payload.next().await {
         let field = item?;
-        if field.name() == "file" {
-            return handle_file_upload(field, &firebase_bucket, db, &client).await;
+        match field.name() {
+            "file" => {
+                let (name, content_type_str, data) = process_file_field(field).await?;
+                filename = Some(name);
+                content_type = Some(content_type_str);
+                file_data = Some(data);
+            }
+            "owner_id" => {
+                owner_id = Some(parse_owner_id(field).await?);
+            }
+            _ => {}
         }
     }
 
-    Ok(HttpResponse::Ok().json(json!({"message": "No files were uploaded."})))
+    if let (Some(file_data), Some(owner_id), Some(filename), Some(content_type)) =
+        (file_data, owner_id, filename, content_type)
+    {
+        return handle_file_upload(
+            file_data,
+            owner_id,
+            &filename,
+            &content_type,
+            &firebase_bucket,
+            db,
+            &client,
+        )
+        .await;
+    }
+
+    Ok(HttpResponse::BadRequest().json(json!({"message": "No files or owner_id were provided."})))
 }
 
 async fn handle_file_upload(
-    mut field: actix_multipart::Field,
+    file_data: Vec<u8>,
+    owner_id: i32,
+    filename: &str,
+    content_type: &str,
     firebase_bucket: &str,
     db: web::Data<Database>,
     client: &Client,
 ) -> Result<HttpResponse, Error> {
-    let content_disposition = field.content_disposition().clone();
-    let filename = match content_disposition
-        .get_filename()
-        .map(|name| name.to_string())
-    {
-        Some(name) if !name.is_empty() => name,
-        _ => {
-            return Ok(HttpResponse::BadRequest().json(json!({"message": "No filename provided"})));
-        }
-    };
-
-    let file_size = 0; // TODO: Implement file size calculation
+    let file_size = file_data.len();
     let upload_time: DateTime<Utc> = Utc::now();
     let bson_upload_time = BsonDateTime::from(SystemTime::from(upload_time));
 
     info!("Uploading file: {:?}", filename);
-
-    let content_type = field
-        .content_type()
-        .expect("Content type is missing")
-        .to_string();
-
-    let mut file_bytes = web::BytesMut::new();
-    while let Some(chunk) = field.next().await {
-        let data = chunk?;
-        file_bytes.extend_from_slice(&data);
-    }
 
     let file_path = format!("content%2F{}", filename);
     let upload_url = format!(
@@ -86,8 +99,8 @@ async fn handle_file_upload(
 
     let response = client
         .post(&upload_url)
-        .header("Content-Type", &content_type)
-        .body(file_bytes.to_vec())
+        .header("Content-Type", content_type)
+        .body(file_data)
         .send()
         .await;
 
@@ -95,11 +108,12 @@ async fn handle_file_upload(
         Ok(res) if res.status().is_success() => {
             save_metadata_to_db(
                 db,
-                filename,
+                owner_id,
+                filename.to_string(),
                 firebase_bucket,
                 file_path,
-                content_type,
-                file_size,
+                content_type.to_string(),
+                file_size as i64,
                 bson_upload_time,
             )
             .await
@@ -109,23 +123,19 @@ async fn handle_file_upload(
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            let error_response = ApiResponse::new(
-                format!("Error uploading to Firebase: {}", error_message),
-                None,
-                None,
-            );
-            Ok(HttpResponse::BadRequest().json(error_response))
+            Ok(HttpResponse::BadRequest().json(json!({
+                "message": format!("Error uploading to Firebase: {}", error_message)
+            })))
         }
-        Err(e) => {
-            let error_response =
-                ApiResponse::new(format!("Error uploading to Firebase: {}", e), None, None);
-            Ok(HttpResponse::BadRequest().json(error_response))
-        }
+        Err(e) => Ok(HttpResponse::BadRequest().json(json!({
+            "message": format!("Error uploading to Firebase: {}", e)
+        }))),
     }
 }
 
 async fn save_metadata_to_db(
     db: web::Data<Database>,
+    owner_id: i32,
     filename: String,
     firebase_bucket: &str,
     file_path: String,
@@ -139,7 +149,7 @@ async fn save_metadata_to_db(
     );
 
     let metadata = doc! {
-        "owner_id": ObjectId::new(), // TODO: get the owner id
+        "owner_id": owner_id,
         "filename": filename,
         "code_url": &code_url,
         "content_type": content_type,
@@ -171,4 +181,44 @@ async fn save_metadata_to_db(
             Ok(HttpResponse::BadRequest().json(error_response))
         }
     }
+}
+
+async fn process_file_field(
+    field: actix_multipart::Field,
+) -> Result<(String, String, Vec<u8>), Error> {
+    let content_disposition = field.content_disposition().clone();
+    let filename = match content_disposition
+        .get_filename()
+        .map(|name| name.to_string())
+    {
+        Some(name) if !name.is_empty() => name,
+        _ => {
+            return Err(UploadError::BadRequest("No filename provided".into()).into());
+        }
+    };
+
+    let content_type = field
+        .content_type()
+        .map(|mime| mime.to_string())
+        .unwrap_or_else(|| "application/octet-stream".to_string());
+
+    let mut data = Vec::new();
+    let mut field = field;
+    while let Some(chunk) = field.next().await {
+        data.extend_from_slice(&chunk?);
+    }
+
+    Ok((filename, content_type, data))
+}
+
+async fn parse_owner_id(mut field: actix_multipart::Field) -> Result<i32, Error> {
+    let mut data = Vec::new();
+    while let Some(chunk) = field.next().await {
+        data.extend_from_slice(&chunk?);
+    }
+    let owner_id_str = String::from_utf8(data)
+        .map_err(|_| UploadError::BadRequest("Invalid UTF-8 sequence in owner_id".into()))?;
+    owner_id_str
+        .parse::<i32>()
+        .map_err(|_| UploadError::BadRequest("Invalid owner_id format".into()).into())
 }
