@@ -6,6 +6,10 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/content")
             .route("/upload", web::post().to(upload::upload))
+            .route(
+                "/owner/{id}",
+                web::get().to(metadata::get_contents_by_owner),
+            )
             .route("/{id}", web::get().to(metadata::get_details))
             .route("/{id}", web::put().to(metadata::update_metadata))
             .route("/{id}", web::delete().to(metadata::delete))
