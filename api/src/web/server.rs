@@ -98,6 +98,7 @@ fn get_server_port() -> u16 {
 #[openapi(
     paths(
         crate::endpoints::content::upload::upload,
+        crate::endpoints::content::metadata::get_contents_by_owner,
         crate::endpoints::content::metadata::get_details,
         crate::endpoints::content::metadata::update_metadata,
         crate::endpoints::content::metadata::delete,
