@@ -10,8 +10,8 @@ pub struct Program {
     #[schema(example = "60f7b3b3d4b3f3b3f3b3f3b3")]
     pub id: ObjectId,
     #[serde(rename = "owner_id")]
-    #[schema(example = "60f7b3b3d4b3f3b3f3b3f3b3")]
-    pub owner_id: ObjectId,
+    #[schema(example = "121")]
+    pub owner_id: i32,
     #[serde(rename = "filename")]
     #[schema(example = "example.py")]
     pub filename: String,

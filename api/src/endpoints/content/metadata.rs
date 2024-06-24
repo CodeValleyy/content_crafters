@@ -1,6 +1,7 @@
 use crate::endpoints::content::update_program_dto::UpdateProgramDto;
 use actix_web::{web, Error, HttpResponse};
 use bson::oid::ObjectId;
+use futures::StreamExt;
 use mongodb::{bson::doc, Collection, Database};
 use shared::models::program::Program;
 
@@ -33,6 +34,61 @@ pub async fn get_details(
             "Database query failed: {}",
             e
         ))),
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "/content/owner/{id}",
+    tag = "content",
+    params(("id"=i32, Path, description = "Get Contents by owner id")),
+    responses(
+        (status = 200, description = "Content details", body = Vec<Program>),
+        (status = 404, description = "Content not found"),
+    )
+)]
+pub async fn get_contents_by_owner(
+    db: web::Data<Database>,
+    owner_id: web::Path<i32>,
+) -> Result<HttpResponse, Error> {
+    let collection: Collection<Program> = db.collection("programs");
+
+    let owner_id_value = owner_id.into_inner();
+    log::info!("Searching for programs with owner_id: {}", owner_id_value);
+
+    let filter = doc! {"owner_id": owner_id_value};
+    let result = collection.find(filter, None).await;
+
+    match result {
+        Ok(cursor) => {
+            let programs: Vec<Program> = cursor
+                .filter_map(|item| async move {
+                    match item {
+                        Ok(program) => {
+                            log::info!("Found program: {:?}", program);
+                            Some(program)
+                        }
+                        Err(e) => {
+                            log::error!("Error reading program: {}", e);
+                            None
+                        }
+                    }
+                })
+                .collect()
+                .await;
+
+            if programs.is_empty() {
+                log::warn!("No programs found for owner_id: {}", owner_id_value);
+            }
+            Ok(HttpResponse::Ok().json(programs))
+        }
+        Err(e) => {
+            log::error!("Database query failed: {}", e);
+            Err(actix_web::error::ErrorInternalServerError(format!(
+                "Database query failed: {}",
+                e
+            )))
+        }
     }
 }
 
