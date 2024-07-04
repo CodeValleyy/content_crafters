@@ -1,6 +1,7 @@
 use actix_web::web::{Data, JsonConfig};
 use actix_web::{middleware::Logger, web, App, HttpServer};
 use log::info;
+use shared::models::pipeline::{CreatePipeline, Pipeline, UpdatePipeline};
 use shared::{
     database::db_interface::DatabaseConnection,
     models::{program::Program, upload_file::UploadFile},
@@ -13,6 +14,8 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::endpoints::content::{
     routes::config as content_config, update_program_dto::UpdateProgramDto,
 };
+
+use crate::endpoints::pipeline::routes::config as pipeline_config;
 
 const DEFAULT_PORT: u16 = 8080;
 
@@ -80,7 +83,11 @@ pub async fn run_server(db: DatabaseConnection) -> std::io::Result<()> {
                     .url("/api-docs/openapi.json", generate_openapi()),
             )
             .service(web::resource("/health").to(|| async { "OK" }))
-            .service(web::scope("/v1").configure(content_config))
+            .service(
+                web::scope("/v1")
+                    .configure(content_config)
+                    .configure(pipeline_config),
+            )
     })
     .bind(server_address)?
     .run()
@@ -102,17 +109,27 @@ fn get_server_port() -> u16 {
         crate::endpoints::content::metadata::get_details,
         crate::endpoints::content::metadata::update_metadata,
         crate::endpoints::content::metadata::delete,
+        crate::endpoints::pipeline::metadata::get_pipelines_by_owner,
+        crate::endpoints::pipeline::metadata::get_pipeline,
+        crate::endpoints::pipeline::metadata::list_pipelines,
+        crate::endpoints::pipeline::metadata::create_pipeline,
+        crate::endpoints::pipeline::metadata::delete_pipeline,
+        crate::endpoints::pipeline::metadata::update_pipeline,
     ),
     components(
         schemas(
             UpdateProgramDto,
             UploadFile,
             Program,
+            Pipeline,
+            CreatePipeline,
+            UpdatePipeline
         ),
     ),
 
     tags(
-            (name = "content", description = "Content related operations")
+            (name = "content", description = "Content related operations"),
+            (name = "pipeline", description = "Pipeline related operations")
     ),
     servers(
         (url = "/v1", description = "Base URL for all API endpoints")
