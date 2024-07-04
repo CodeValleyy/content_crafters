@@ -1,3 +1,5 @@
+use actix_cors::Cors;
+use actix_web::http;
 use actix_web::web::{Data, JsonConfig};
 use actix_web::{middleware::Logger, web, App, HttpServer};
 use log::info;
@@ -74,9 +76,26 @@ pub async fn run_server(db: DatabaseConnection) -> std::io::Result<()> {
     info!("Swagger UI available at {}", swagger_url);
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allowed_origin_fn(|origin, _req_head| {
+                if let Some(origin_str) = origin.to_str().ok() {
+                    origin_str.ends_with(":3000") || origin_str.contains("code-valley.xyz")
+                } else {
+                    false
+                }
+            })
+            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+            .allowed_headers(vec![
+                http::header::AUTHORIZATION,
+                http::header::ACCEPT,
+                http::header::CONTENT_TYPE,
+            ])
+            .supports_credentials()
+            .max_age(3600);
         App::new()
             .app_data(Data::new(web_db.clone()))
             .app_data(JsonConfig::default())
+            .wrap(cors)
             .wrap(Logger::default())
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}")
