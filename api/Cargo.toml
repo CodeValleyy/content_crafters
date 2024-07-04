@@ -15,6 +15,7 @@ repository = "https://github.com/jabibamman/content_crafters"
 [dependencies]
 # Web framework for handling RESTful API and WebSocket
 actix = "0.13.1"
+actix-cors = "0.7.0"
 actix-web = "4.4.1"
 actix-rt = "2.5"          # Runtime for actix-web
 actix-multipart = "0.6.1" # For handling multipart form data
