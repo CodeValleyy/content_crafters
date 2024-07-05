@@ -1,5 +1,6 @@
 use actix_multipart::Multipart;
 use actix_web::{web, Error, HttpResponse};
+use bson::{oid::ObjectId, Document};
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use log::info;
@@ -61,14 +62,14 @@ pub async fn upload(
     if let (Some(file_data), Some(owner_id), Some(filename), Some(content_type)) =
         (file_data, owner_id, filename, content_type)
     {
-        return handle_file_upload(
-            file_data,
+        return update(
             owner_id,
+            file_data,
             &filename,
             &content_type,
-            &firebase_bucket,
             db,
             &client,
+            &firebase_bucket,
         )
         .await;
     }
@@ -76,26 +77,101 @@ pub async fn upload(
     Ok(HttpResponse::BadRequest().json(json!({"message": "No files or owner_id were provided."})))
 }
 
-async fn handle_file_upload(
-    file_data: Vec<u8>,
+async fn update(
     owner_id: i32,
+    file_data: Vec<u8>,
     filename: &str,
     content_type: &str,
-    firebase_bucket: &str,
     db: web::Data<Database>,
     client: &Client,
+    firebase_bucket: &str,
 ) -> Result<HttpResponse, Error> {
+    let collection: mongodb::Collection<Document> = db.collection::<Document>("programs");
+
+    let base_filename = match filename.rsplit_once('.') {
+        Some((base, _)) => base,
+        None => filename,
+    };
+    let regex_pattern = format!("^{}", regex::escape(base_filename));
+    info!("Regex pattern: {:?}", regex_pattern);
+
+    let existing_file: Option<bson::Document> = collection
+        .find_one(
+            doc! {
+                "owner_id": owner_id,
+                "filename": { "$regex": regex_pattern, "$options": "i" }
+            },
+            None,
+        )
+        .await
+        .map_err(|e| {
+            log::error!("Database error: {:?}", e);
+            actix_web::error::ErrorInternalServerError("Database error")
+        })?;
+
+    info!("Existing file: {:?}", existing_file);
     let file_size = file_data.len();
+    let mut file_id = ObjectId::new();
     let upload_time: DateTime<Utc> = Utc::now();
     let bson_upload_time = BsonDateTime::from(SystemTime::from(upload_time));
+    let timestamp = upload_time.timestamp_millis();
+    let (base_filename, extension) = match filename.rsplit_once('.') {
+        Some((base, ext)) => (base, ext),
+        None => (filename, ""),
+    };
+    if let Some(existing_file) = existing_file {
+        let existing_file_path = existing_file.get_str("file_path").map_err(|e| {
+            log::error!("Error getting file_path: {:?}", e);
+            actix_web::error::ErrorInternalServerError("Error getting file_path")
+        })?;
+        file_id = existing_file
+            .get_object_id("_id")
+            .map_err(|e| {
+                log::error!("Error getting _id: {:?}", e);
+                actix_web::error::ErrorInternalServerError("Error getting _id")
+            })?
+            .clone();
 
-    info!("Uploading file: {:?}", filename);
+        let delete_url = format!(
+            "https://firebasestorage.googleapis.com/v0/b/{}/o/{}",
+            firebase_bucket, existing_file_path
+        );
+        let delete_response = client.delete(&delete_url).send().await;
 
-    let file_path = format!("content%2F{}", filename);
+        match delete_response {
+            Ok(res) if res.status().is_success() => {
+                info!("File deleted from: {:?}", existing_file_path);
+            }
+            Ok(res) => {
+                let error_message = res
+                    .text()
+                    .await
+                    .unwrap_or_else(|_| "Unknown error".to_string());
+                return Ok(HttpResponse::BadRequest().json(json!({
+                    "message": format!("Error deleting file: {} for file id: {:?}", error_message, file_id)
+                })));
+            }
+            Err(e) => {
+                return Ok(HttpResponse::BadRequest().json(json!({
+                    "message": format!("Error deleting file: {}", e)
+                })));
+            }
+        }
+    }
+
+    let filename_with_timestamp = if extension.is_empty() {
+        format!("{}-{}-{}", base_filename, file_id, timestamp)
+    } else {
+        format!("{}-{}-{}.{}", base_filename, file_id, timestamp, extension)
+    };
+
+    let file_path: String = format!("content%2F{}%2F{}", owner_id, filename_with_timestamp);
     let upload_url = format!(
         "https://firebasestorage.googleapis.com/v0/b/{}/o?name={}",
         firebase_bucket, file_path
     );
+
+    info!("Uploading file: {:?}", filename_with_timestamp);
 
     let response = client
         .post(&upload_url)
@@ -109,12 +185,13 @@ async fn handle_file_upload(
             save_metadata_to_db(
                 db,
                 owner_id,
-                filename.to_string(),
+                filename_with_timestamp.to_string(),
                 firebase_bucket,
                 file_path,
                 content_type.to_string(),
                 file_size as i64,
                 bson_upload_time,
+                file_id,
             )
             .await
         }
@@ -142,43 +219,82 @@ async fn save_metadata_to_db(
     content_type: String,
     file_size: i64,
     bson_upload_time: BsonDateTime,
+    file_id: ObjectId,
 ) -> Result<HttpResponse, Error> {
     let code_url = format!(
         "https://firebasestorage.googleapis.com/v0/b/{}/o/{}?alt=media",
         firebase_bucket, file_path
     );
 
-    let metadata = doc! {
-        "owner_id": owner_id,
-        "filename": filename,
-        "code_url": &code_url,
-        "content_type": content_type,
-        "file_size": file_size,
-        "upload_time": bson_upload_time,
-        "update_time": bson_upload_time,
-        "file_path": file_path,
-        "file_hash": "example_hash", // TODO: get an algorithm to calculate the file hash (MD5, SHA256, etc.)
-    };
-
     let collection = db.collection("programs");
-    let insert_result = collection.insert_one(metadata, None).await;
 
-    match insert_result {
-        Ok(insert_response) => {
+    // Vérifier si le document existe déjà
+    let existing_file = collection
+        .find_one(doc! { "_id": file_id }, None)
+        .await
+        .map_err(|e| {
+            log::error!("Database error: {:?}", e);
+            actix_web::error::ErrorInternalServerError("Database error")
+        })?;
+
+    if let Some(_) = existing_file {
+        let metadata = doc! {
+            "owner_id": owner_id,
+            "filename": filename,
+            "code_url": &code_url,
+            "content_type": content_type,
+            "file_size": file_size,
+            "update_time": bson_upload_time,
+            "file_path": file_path,
+            "file_hash": "example_hash", // TODO: get an algorithm to calculate the file hash (MD5, SHA256, etc.)
+        };
+
+        let update_result = collection
+            .update_one(doc! { "_id": file_id }, doc! { "$set": metadata }, None)
+            .await
+            .map_err(|e| {
+                log::error!("Update error: {:?}", e);
+                actix_web::error::ErrorInternalServerError("Update error")
+            })?;
+
+        if update_result.matched_count > 0 {
+            let response_data = ApiResponse::new(
+                "File metadata updated",
+                Some(file_id.to_hex()),
+                Some(code_url),
+            );
+            Ok(HttpResponse::Ok().json(response_data))
+        } else {
+            Ok(HttpResponse::BadRequest().json(json!({"message": "Failed to update metadata"})))
+        }
+    } else {
+        let metadata = doc! {
+            "_id": file_id,
+            "owner_id": owner_id,
+            "filename": filename,
+            "code_url": &code_url,
+            "content_type": content_type,
+            "file_size": file_size,
+            "upload_time": bson_upload_time,
+            "update_time": bson_upload_time,
+            "file_path": file_path,
+            "file_hash": "example_hash", // TODO: get an algorithm to calculate the file hash (MD5, SHA256, etc.)
+        };
+
+        let insert_result = collection.insert_one(metadata, None).await.map_err(|e| {
+            log::error!("Insert error: {:?}", e);
+            actix_web::error::ErrorInternalServerError("Insert error")
+        })?;
+
+        if insert_result.inserted_id.as_object_id() == Some(file_id) {
             let response_data = ApiResponse::new(
                 "File uploaded and metadata saved",
-                insert_response
-                    .inserted_id
-                    .as_object_id()
-                    .map(|oid| oid.to_hex()),
+                Some(file_id.to_hex()),
                 Some(code_url),
             );
             Ok(HttpResponse::Created().json(response_data))
-        }
-        Err(e) => {
-            let error_response =
-                ApiResponse::new(format!("Error inserting document: {}", e), None, None);
-            Ok(HttpResponse::BadRequest().json(error_response))
+        } else {
+            Ok(HttpResponse::BadRequest().json(json!({"message": "Failed to save metadata"})))
         }
     }
 }
