@@ -10,6 +10,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
                 "/owner/{id}",
                 web::get().to(metadata::get_contents_by_owner),
             )
+            .route("/{id}", web::delete().to(metadata::delete))
             .route("/{id}", web::get().to(metadata::get_details))
             .route("/{id}", web::put().to(metadata::update_metadata))
             .route("/{id}", web::delete().to(metadata::delete))

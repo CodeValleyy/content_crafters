@@ -1,9 +1,13 @@
-use crate::endpoints::content::update_program_dto::UpdateProgramDto;
+use crate::{
+    endpoints::content::update_program_dto::UpdateProgramDto,
+    utils::firebase::delete_file_from_firebase,
+};
 use actix_web::{web, Error, HttpResponse};
-use bson::oid::ObjectId;
+use bson::{oid::ObjectId, Document};
 use futures::StreamExt;
 use log::{info, warn};
 use mongodb::{bson::doc, Collection, Database};
+use reqwest::Client;
 use shared::models::program::Program;
 
 #[utoipa::path(
@@ -158,19 +162,43 @@ pub async fn update_metadata(
     )
 )]
 pub async fn delete(db: web::Data<Database>, id: web::Path<String>) -> Result<HttpResponse, Error> {
-    let collection = db.collection::<Program>("programs");
+    let collection = db.collection::<Document>("programs");
     let object_id = match ObjectId::parse_str(&id.as_ref()) {
         Ok(oid) => oid,
         Err(_) => return Err(actix_web::error::ErrorBadRequest("Invalid ID format")),
     };
+    let firebase_bucket =
+        std::env::var("FIREBASE_STORAGE_BUCKET").expect("FIREBASE_STORAGE_BUCKET must be set");
+    let client = Client::new();
 
-    let delete_result = collection.delete_one(doc! {"_id": object_id}, None).await;
-    match delete_result {
-        Ok(delete) if delete.deleted_count == 1 => Ok(HttpResponse::Ok().body("Content deleted")),
-        Ok(_) => Ok(HttpResponse::NotFound().body("Content not found")),
-        Err(e) => Err(actix_web::error::ErrorInternalServerError(format!(
-            "Database operation failed: {}",
-            e
-        ))),
+    let existing_file = collection
+        .find_one(doc! { "_id": object_id }, None)
+        .await
+        .map_err(|e| {
+            log::error!("Database error: {:?}", e);
+            actix_web::error::ErrorInternalServerError("Database error")
+        })?;
+
+    if let Some(file) = existing_file {
+        let file_path = file.get_str("file_path").map_err(|e| {
+            log::error!("Error getting file_path: {:?}", e);
+            actix_web::error::ErrorInternalServerError("Error getting file_path")
+        })?;
+
+        delete_file_from_firebase(&client, &firebase_bucket, file_path).await?;
+
+        let delete_result = collection.delete_one(doc! { "_id": object_id }, None).await;
+        match delete_result {
+            Ok(delete) if delete.deleted_count == 1 => {
+                Ok(HttpResponse::Ok().body("Content deleted"))
+            }
+            Ok(_) => Ok(HttpResponse::NotFound().body("Content not found")),
+            Err(e) => Err(actix_web::error::ErrorInternalServerError(format!(
+                "Database operation failed: {}",
+                e
+            ))),
+        }
+    } else {
+        Ok(HttpResponse::NotFound().body("Content not found"))
     }
 }
