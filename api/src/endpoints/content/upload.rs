@@ -15,7 +15,7 @@ use std::time::SystemTime;
 
 use utils::error::UploadError;
 
-use crate::utils;
+use crate::utils::{self, firebase::delete_file_from_firebase};
 
 #[utoipa::path(
     post,
@@ -131,32 +131,7 @@ async fn update(
                 actix_web::error::ErrorInternalServerError("Error getting _id")
             })?
             .clone();
-
-        let delete_url = format!(
-            "https://firebasestorage.googleapis.com/v0/b/{}/o/{}",
-            firebase_bucket, existing_file_path
-        );
-        let delete_response = client.delete(&delete_url).send().await;
-
-        match delete_response {
-            Ok(res) if res.status().is_success() => {
-                info!("File deleted from: {:?}", existing_file_path);
-            }
-            Ok(res) => {
-                let error_message = res
-                    .text()
-                    .await
-                    .unwrap_or_else(|_| "Unknown error".to_string());
-                return Ok(HttpResponse::BadRequest().json(json!({
-                    "message": format!("Error deleting file: {} for file id: {:?}", error_message, file_id)
-                })));
-            }
-            Err(e) => {
-                return Ok(HttpResponse::BadRequest().json(json!({
-                    "message": format!("Error deleting file: {}", e)
-                })));
-            }
-        }
+        delete_file_from_firebase(client, firebase_bucket, existing_file_path).await?;
     }
 
     let filename_with_timestamp = if extension.is_empty() {
