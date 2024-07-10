@@ -4,7 +4,7 @@ use actix_web::web::{Data, JsonConfig};
 use actix_web::{middleware::Logger, web, App, HttpServer};
 use log::info;
 use shared::models::pipeline::{CreatePipeline, Pipeline, UpdatePipeline};
-use shared::models::upload_file::UploadGroupFile;
+use shared::models::upload_file::UploadGroup;
 use shared::{
     database::db_interface::DatabaseConnection,
     models::{program::Program, upload_file::UploadFile},
@@ -143,7 +143,7 @@ fn get_server_port() -> u16 {
         schemas(
             UpdateProgramDto,
             UploadFile,
-            UploadGroupFile,
+            UploadGroup,
             Program,
             Pipeline,
             CreatePipeline,

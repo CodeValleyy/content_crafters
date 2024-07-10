@@ -2,7 +2,6 @@ use actix_multipart::Multipart;
 use actix_web::{Error, HttpResponse};
 use futures::StreamExt;
 use log::info;
-use mongodb::bson::doc;
 use reqwest::Client;
 use serde_json::json;
 use shared::database::api_response::ApiResponse;
@@ -21,7 +20,7 @@ use crate::utils::{self, field_parser::parse_id};
     ),
     request_body(
         content_type = "multipart/form-data",
-        content = UploadGroupFile
+        content = UploadGroup
     ),
 )]
 pub async fn upload(mut payload: Multipart) -> Result<HttpResponse, Error> {
@@ -31,6 +30,7 @@ pub async fn upload(mut payload: Multipart) -> Result<HttpResponse, Error> {
 
     let mut group_id: Option<i32> = None;
     let mut owner_id: Option<i32> = None;
+    let mut message_id: Option<i32> = None;
     let mut file_data: Option<Vec<u8>> = None;
     let mut filename: Option<String> = None;
     let mut content_type: Option<String> = None;
@@ -47,10 +47,12 @@ pub async fn upload(mut payload: Multipart) -> Result<HttpResponse, Error> {
             }
             "group_id" => group_id = Some(parse_id(&field_name, field).await?),
             "owner_id" => owner_id = Some(parse_id(&field_name, field).await?),
+            "message_id" => message_id = Some(parse_id(&field_name, field).await?),
             _ => {}
         }
     }
 
+    message_id.get_or_insert(0);
     if let (Some(file_data), Some(owner_id), Some(group_id), Some(filename), Some(content_type)) =
         (file_data, owner_id, group_id, filename, content_type)
     {
@@ -58,6 +60,7 @@ pub async fn upload(mut payload: Multipart) -> Result<HttpResponse, Error> {
             owner_id,
             group_id,
             file_data,
+            message_id,
             &filename,
             &content_type,
             &client,
@@ -74,13 +77,19 @@ async fn update(
     owner_id: i32,
     group_id: i32,
     file_data: Vec<u8>,
+    message_id: Option<i32>,
     filename: &str,
     content_type: &str,
     client: &Client,
     firebase_bucket: &str,
 ) -> Result<HttpResponse, Error> {
+    let edited_filename = match message_id {
+        Some(0) | None => format!("{}-{}", group_id, owner_id),
+        Some(id) => format!("{}-{}-{}", group_id, owner_id, id),
+    };
+
     let (base_filename, extension) = match filename.rsplit_once('.') {
-        Some((_, ext)) => (format!("{}-{}", group_id, owner_id), ext),
+        Some((_, ext)) => (edited_filename, ext),
         None => (filename.to_string(), ""),
     };
 
@@ -90,7 +99,12 @@ async fn update(
         format!("{}.{}", base_filename, extension)
     };
 
-    let file_path: String = format!("group%2F{}%2F{}", owner_id, filename_with_extension);
+    let directory = match message_id {
+        Some(0) | None => format!("group%2F{}", owner_id),
+        Some(_) => format!("group%2F{}%2Fmessages", owner_id),
+    };
+
+    let file_path: String = format!("{}%2F{}", directory, filename_with_extension);
     let upload_url = format!(
         "https://firebasestorage.googleapis.com/v0/b/{}/o?name={}",
         firebase_bucket, file_path

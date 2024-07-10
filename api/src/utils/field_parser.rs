@@ -10,6 +10,13 @@ pub async fn parse_id(field_name: &str, mut field: actix_multipart::Field) -> Re
     let group_id_str = String::from_utf8(data).map_err(|_| {
         UploadError::BadRequest(format!("Invalid UTF-8 sequence in {}", field_name))
     })?;
+
+    if field_name == "message_id" {
+        if group_id_str.is_empty() {
+            return Ok(0);
+        }
+    }
+
     Ok(group_id_str
         .parse::<i32>()
         .map_err(|_| UploadError::BadRequest(format!("Invalid {} format", field_name)))?)
