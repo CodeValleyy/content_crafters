@@ -4,6 +4,7 @@ use actix_web::web::{Data, JsonConfig};
 use actix_web::{middleware::Logger, web, App, HttpServer};
 use log::info;
 use shared::models::pipeline::{CreatePipeline, Pipeline, UpdatePipeline};
+use shared::models::upload_file::UploadGroupFile;
 use shared::{
     database::db_interface::DatabaseConnection,
     models::{program::Program, upload_file::UploadFile},
@@ -17,6 +18,7 @@ use crate::endpoints::content::{
     routes::config as content_config, update_program_dto::UpdateProgramDto,
 };
 
+use crate::endpoints::group::routes::config as group_config;
 use crate::endpoints::pipeline::routes::config as pipeline_config;
 
 const DEFAULT_PORT: u16 = 8080;
@@ -105,7 +107,8 @@ pub async fn run_server(db: DatabaseConnection) -> std::io::Result<()> {
             .service(
                 web::scope("/v1")
                     .configure(content_config)
-                    .configure(pipeline_config),
+                    .configure(pipeline_config)
+                    .configure(group_config),
             )
     })
     .bind(server_address)?
@@ -134,11 +137,13 @@ fn get_server_port() -> u16 {
         crate::endpoints::pipeline::metadata::create_pipeline,
         crate::endpoints::pipeline::metadata::delete_pipeline,
         crate::endpoints::pipeline::metadata::update_pipeline,
+        crate::endpoints::group::upload::upload,
     ),
     components(
         schemas(
             UpdateProgramDto,
             UploadFile,
+            UploadGroupFile,
             Program,
             Pipeline,
             CreatePipeline,
@@ -148,7 +153,8 @@ fn get_server_port() -> u16 {
 
     tags(
             (name = "content", description = "Content related operations"),
-            (name = "pipeline", description = "Pipeline related operations")
+            (name = "pipeline", description = "Pipeline related operations"),
+            (name = "group", description = "Group related operations"),
     ),
     servers(
         (url = "/v1", description = "Base URL for all API endpoints")
