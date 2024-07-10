@@ -15,7 +15,7 @@ use std::time::SystemTime;
 
 use utils::error::UploadError;
 
-use crate::utils::{self, firebase::delete_file_from_firebase};
+use crate::utils::{self, field_parser::parse_id, firebase::delete_file_from_firebase};
 
 #[utoipa::path(
     post,
@@ -45,6 +45,7 @@ pub async fn upload(
 
     while let Some(item) = payload.next().await {
         let field = item?;
+        let field_name = field.name().to_string();
         match field.name() {
             "file" => {
                 let (name, content_type_str, data) = process_file_field(field).await?;
@@ -52,9 +53,7 @@ pub async fn upload(
                 content_type = Some(content_type_str);
                 file_data = Some(data);
             }
-            "owner_id" => {
-                owner_id = Some(parse_owner_id(field).await?);
-            }
+            "owner_id" => owner_id = Some(parse_id(&field_name, field).await?),
             _ => {}
         }
     }
@@ -300,16 +299,4 @@ async fn process_file_field(
     }
 
     Ok((filename, content_type, data))
-}
-
-async fn parse_owner_id(mut field: actix_multipart::Field) -> Result<i32, Error> {
-    let mut data = Vec::new();
-    while let Some(chunk) = field.next().await {
-        data.extend_from_slice(&chunk?);
-    }
-    let owner_id_str = String::from_utf8(data)
-        .map_err(|_| UploadError::BadRequest("Invalid UTF-8 sequence in owner_id".into()))?;
-    owner_id_str
-        .parse::<i32>()
-        .map_err(|_| UploadError::BadRequest("Invalid owner_id format".into()).into())
 }
