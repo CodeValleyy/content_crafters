@@ -2,7 +2,7 @@ use actix_multipart::Multipart;
 use actix_web::{web, Error, HttpResponse};
 use bson::{oid::ObjectId, Document};
 use chrono::{DateTime, Utc};
-use futures::StreamExt;
+use futures::{StreamExt, TryStreamExt};
 use log::info;
 use mongodb::{
     bson::{doc, DateTime as BsonDateTime},
@@ -42,9 +42,10 @@ pub async fn upload(
     let mut file_data: Option<Vec<u8>> = None;
     let mut filename: Option<String> = None;
     let mut content_type: Option<String> = None;
+    let mut output_extension: Option<String> = Some(".txt".to_string());
 
     while let Some(item) = payload.next().await {
-        let field = item?;
+        let mut field = item?;
         let field_name = field.name().to_string();
         match field.name() {
             "file" => {
@@ -54,18 +55,43 @@ pub async fn upload(
                 file_data = Some(data);
             }
             "owner_id" => owner_id = Some(parse_id(&field_name, field).await?),
+            "output_extension" => {
+                info!("Received output extension");
+                let mut data = Vec::new();
+                while let Some(chunk) = field.try_next().await.unwrap() {
+                    data.extend_from_slice(&chunk);
+                }
+                output_extension = Some(String::from_utf8(data).unwrap());
+                if output_extension == Some("".to_string())
+                    || output_extension == Some("null".to_string())
+                {
+                    output_extension = Some(".txt".to_string());
+                }
+            }
+
             _ => {}
         }
     }
 
-    if let (Some(file_data), Some(owner_id), Some(filename), Some(content_type)) =
-        (file_data, owner_id, filename, content_type)
-    {
+    if let (
+        Some(file_data),
+        Some(owner_id),
+        Some(filename),
+        Some(content_type),
+        Some(output_extension),
+    ) = (
+        file_data,
+        owner_id,
+        filename,
+        content_type,
+        output_extension,
+    ) {
         return update(
             owner_id,
             file_data,
             &filename,
             &content_type,
+            &output_extension,
             db,
             &client,
             &firebase_bucket,
@@ -81,6 +107,7 @@ async fn update(
     file_data: Vec<u8>,
     filename: &str,
     content_type: &str,
+    output_extension: &str,
     db: web::Data<Database>,
     client: &Client,
     firebase_bucket: &str,
@@ -163,6 +190,7 @@ async fn update(
                 firebase_bucket,
                 file_path,
                 content_type.to_string(),
+                output_extension.to_string(),
                 file_size as i64,
                 bson_upload_time,
                 file_id,
@@ -191,6 +219,7 @@ async fn save_metadata_to_db(
     firebase_bucket: &str,
     file_path: String,
     content_type: String,
+    output_extension: String,
     file_size: i64,
     bson_upload_time: BsonDateTime,
     file_id: ObjectId,
@@ -218,6 +247,7 @@ async fn save_metadata_to_db(
             "code_url": &code_url,
             "content_type": content_type,
             "file_size": file_size,
+            "output_type": output_extension,
             "update_time": bson_upload_time,
             "file_path": file_path,
             "file_hash": "example_hash", // TODO: get an algorithm to calculate the file hash (MD5, SHA256, etc.)
@@ -249,6 +279,7 @@ async fn save_metadata_to_db(
             "code_url": &code_url,
             "content_type": content_type,
             "file_size": file_size,
+            "output_type": output_extension,
             "upload_time": bson_upload_time,
             "update_time": bson_upload_time,
             "file_path": file_path,
