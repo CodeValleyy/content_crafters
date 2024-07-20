@@ -85,7 +85,7 @@ async fn update(
 ) -> Result<HttpResponse, Error> {
     let edited_filename = match message_id {
         Some(0) | None => format!("{}-{}", group_id, owner_id),
-        Some(id) => format!("{}-{}-{}", group_id, owner_id, id),
+        Some(_) => format!("{}", filename),
     };
 
     let (base_filename, extension) = match filename.rsplit_once('.') {
