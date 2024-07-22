@@ -67,6 +67,17 @@ pub async fn upload(
                 {
                     output_extension = Some(".txt".to_string());
                 }
+
+                match output_extension {
+                    Some(ref ext) => {
+                        if !ext.starts_with('.') {
+                            output_extension = Some(format!(".{}", ext));
+                        }
+                    }
+                    None => {
+                        output_extension = Some(".txt".to_string());
+                    }
+                }
             }
 
             _ => {}

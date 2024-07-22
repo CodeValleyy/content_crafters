@@ -6,6 +6,8 @@ pub struct UploadFile {
     pub file: Vec<u8>,
     #[schema(example = 123)]
     pub owner_id: i32,
+    #[schema(example = ".py")]
+    pub output_extension: Option<String>,
 }
 
 #[derive(ToSchema)]
