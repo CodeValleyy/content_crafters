@@ -119,6 +119,7 @@ async fn update(
     filename: &str,
     content_type: &str,
     output_extension: &str,
+
     db: web::Data<Database>,
     client: &Client,
     firebase_bucket: &str,
